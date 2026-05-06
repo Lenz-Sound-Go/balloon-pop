@@ -10,9 +10,6 @@ let audioCtx = null;
 
 // BGM: ステージごとに異なる進行（各音は約0.5秒ずつ）
 let bgmIntervalId = null;
-let bgmNoteIndex = 0;
-let bgmOsc = null;
-let bgmGain = null;
 
 // ポップごとに進むメロディノート
 let melodyNoteIndex = 0;
@@ -70,60 +67,123 @@ function playPopSound() {
   src.stop(audioCtx.currentTime + 0.1);
 }
 
-// === BGM: １曲流し続ける ===
+// === BGM: 一般的なメロディBGM ===
+// 作曲: 短い可愛いループメロディ
+const BGM_NOTES = [
+  // 小節1
+  { note: "C4", dur: 0.3 },
+  { note: "E4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "C5", dur: 0.3 },
+  { note: "B4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "E4", dur: 0.3 },
+  { note: "D4", dur: 0.3 },
+  // 小節2
+  { note: "C4", dur: 0.3 },
+  { note: "E4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "A4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "E4", dur: 0.3 },
+  { note: "F4", dur: 0.3 },
+  { note: "D4", dur: 0.3 },
+  // 小節3
+  { note: "E4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "B4", dur: 0.3 },
+  { note: "G4", dur: 0.3 },
+  { note: "A4", dur: 0.3 },
+  { note: "F4", dur: 0.3 },
+  { note: "D4", dur: 0.3 },
+  { note: "C4", dur: 0.3 },
+  // 小節4
+  { note: "C4", dur: 0.3 },
+  { note: "G3", dur: 0.15 },
+  { note: "A3", dur: 0.15 },
+  { note: "B3", dur: 0.15 },
+  { note: "C4", dur: 0.15 },
+  { note: "D4", dur: 0.15 },
+  { note: "E4", dur: 0.15 },
+  { note: "F4", dur: 0.15 },
+];
+
+const NOTE_TO_FREQ = {
+  C3: 130.81, "C#3": 138.59, D3: 146.83, "D#3": 155.56, E3: 164.81, F3: 174.61, "F#3": 185.00, G3: 196.00, "G#3": 207.65, A3: 220.00, "A#3": 233.08, B3: 246.94,
+  C4: 261.63, "C#4": 277.18, D4: 293.66, "D#4": 311.13, E4: 329.63, F4: 349.23, "F#4": 369.99, G4: 392.00, "G#4": 415.30, A4: 440.00, "A#4": 466.16, B4: 493.88,
+  C5: 523.25, "C#5": 554.37, D5: 587.33, "D#5": 622.25, E5: 659.25, F5: 698.46, "F#5": 739.99, G5: 783.99, "G#5": 830.61, A5: 880.00, "A#5": 932.33, B5: 987.77,
+};
+
+// ベース進行（コードルート）
+const BASS_PATTERN = ["C3", "G3", "A3", "F3"];
+
 function startBGM() {
   initAudio();
   stopBGM();
 
-  const scale = getStageScale(stage);
-  bgmNoteIndex = 0;
+  let step = 0;
 
-  // 低音の持続音（ドローン）
-  const droneOsc = audioCtx.createOscillator();
-  const droneGain = audioCtx.createGain();
-  droneOsc.type = "sawtooth";
-  droneOsc.frequency.value = scale[0] / 2; // 1オクターブ下
-  droneGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-  droneOsc.connect(droneGain);
-  droneGain.connect(audioCtx.destination);
-  droneOsc.start();
-
-  // リズム進行（BGMループ）
   bgmIntervalId = setInterval(() => {
     if (!gameRunning) return;
 
-    const freq = scale[bgmNoteIndex % scale.length];
-    bgmNoteIndex++;
+    const beatTime = 0.3;
+    const now = audioCtx.currentTime;
 
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "triangle";
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.4);
-  }, 400);
+    // --- ベース音（2拍ごとに切り替え） ---
+    const bassIdx = Math.floor(step / 2) % BASS_PATTERN.length;
+    const bassFreq = NOTE_TO_FREQ[BASS_PATTERN[bassIdx]];
+    const bassOsc = audioCtx.createOscillator();
+    const bassGain = audioCtx.createGain();
+    bassOsc.type = "triangle";
+    bassOsc.frequency.value = bassFreq;
+    bassGain.gain.setValueAtTime(0.09, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, now + beatTime * 1.5);
+    bassOsc.connect(bassGain);
+    bassGain.connect(audioCtx.destination);
+    bassOsc.start(now);
+    bassOsc.stop(now + beatTime * 1.5);
 
-  // ドローンを保存して後で停止できるように
-  bgmOsc = droneOsc;
-  bgmGain = droneGain;
+    // --- メロディ ---
+    const melodyIdx = step % BGM_NOTES.length;
+    const mel = BGM_NOTES[melodyIdx];
+    const melFreq = NOTE_TO_FREQ[mel.note];
+
+    const melOsc = audioCtx.createOscillator();
+    const melGain = audioCtx.createGain();
+    melOsc.type = "square";
+    melOsc.frequency.value = melFreq;
+    melGain.gain.setValueAtTime(0.05, now);
+    melGain.gain.exponentialRampToValueAtTime(0.001, now + mel.dur * 0.85);
+    melOsc.connect(melGain);
+    melGain.connect(audioCtx.destination);
+    melOsc.start(now);
+    melOsc.stop(now + mel.dur);
+
+    // --- 和音（メロディと同時に柔らかいパッド） ---
+    if (step % 4 === 0) {
+      const chordRoot = NOTE_TO_FREQ[BASS_PATTERN[bassIdx]];
+      [0, 4, 7].forEach((semi, i) => {
+        const padOsc = audioCtx.createOscillator();
+        const padGain = audioCtx.createGain();
+        padOsc.type = "sine";
+        padOsc.frequency.value = chordRoot * Math.pow(2, semi / 12);
+        padGain.gain.setValueAtTime(0.03, now);
+        padGain.gain.exponentialRampToValueAtTime(0.001, now + beatTime * 3);
+        padOsc.connect(padGain);
+        padGain.connect(audioCtx.destination);
+        padOsc.start(now);
+        padOsc.stop(now + beatTime * 3);
+      });
+    }
+
+    step++;
+  }, 300); // 300ms = 1拍
 }
 
 function stopBGM() {
   if (bgmIntervalId) {
     clearInterval(bgmIntervalId);
     bgmIntervalId = null;
-  }
-  if (bgmOsc) {
-    try { bgmOsc.stop(); } catch(e) {}
-    bgmOsc = null;
-  }
-  if (bgmGain) {
-    try { bgmGain.disconnect(); } catch(e) {}
-    bgmGain = null;
   }
 }
 
