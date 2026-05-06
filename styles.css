@@ -34,6 +34,7 @@ body {
   color: var(--ink);
   display: flex;
   justify-content: center;
+  transition: background 0.6s ease;
 }
 
 button {
@@ -156,54 +157,61 @@ button {
   transform: translateY(2px) scale(0.98);
 }
 
-.balloon {
-  --balloon-color: var(--pink);
-  --balloon-size: 4.5rem;
+/* === 顔画像の風船 === */
+.face-balloon {
+  --face-size: 4rem;
   animation: floatUp linear forwards;
-  background:
-    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.88) 0 10%, transparent 11%),
-    radial-gradient(circle at 50% 65%, rgba(0, 0, 0, 0.1), transparent 45%),
-    var(--balloon-color);
-  border-radius: 52% 52% 48% 48% / 44% 44% 56% 56%;
+  background: url("face_small.png") no-repeat center / cover;
+  border-radius: 50%;
   box-shadow:
-    inset -10px -14px 22px rgba(0, 0, 0, 0.12),
-    0 12px 22px rgba(33, 98, 153, 0.18);
+    0 4px 12px rgba(33, 98, 153, 0.25),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  height: calc(var(--balloon-size) * 1.18);
-  left: var(--balloon-left);
+  height: calc(var(--face-size) * 1.2);
+  left: var(--face-left);
   position: absolute;
   top: 100%;
   transform: translateX(-50%);
-  width: var(--balloon-size);
+  width: var(--face-size);
   will-change: transform, opacity;
   z-index: 3;
 }
 
-.balloon::before {
-  border-left: calc(var(--balloon-size) * 0.11) solid transparent;
-  border-right: calc(var(--balloon-size) * 0.11) solid transparent;
-  border-top: calc(var(--balloon-size) * 0.18) solid var(--balloon-color);
-  bottom: calc(var(--balloon-size) * -0.14);
+.face-balloon::after {
+  /* 顔の周りに風船のような光沢 */
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.5),
+    transparent 50%
+  );
+  border-radius: inherit;
   content: "";
-  filter: brightness(0.9);
+  height: 100%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.face-balloon::before {
+  /* 風船の紐（顔の下） */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(200, 200, 200, 0.3)
+  );
+  border-radius: 1px;
+  bottom: calc(var(--face-size) * -0.12);
+  content: "";
+  height: calc(var(--face-size) * 0.35);
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
+  width: 2px;
 }
 
-.balloon::after {
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
-  content: "";
-  height: 22%;
-  left: 24%;
-  position: absolute;
-  top: 18%;
-  transform: rotate(30deg);
-  width: 12%;
-}
-
-.balloon.popped {
+.face-balloon.popped {
   animation: pop 180ms ease-out forwards;
   pointer-events: none;
 }
@@ -299,7 +307,7 @@ button {
     transform: translateX(-50%) scale(1);
   }
 
-  80% {
+  50% {
     opacity: 0.9;
     transform: translateX(-50%) scale(1.35);
   }
@@ -334,7 +342,7 @@ button {
     border-radius: 1.35rem;
   }
 
-  .balloon {
-    --balloon-size: 4rem;
+  .face-balloon {
+    --face-size: 3.5rem;
   }
 }
