@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Balloon Pop</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Balloon Pop game">
+      <section class="hud" aria-label="Game status">
+        <div>
+          <span class="hud-label">Stage</span>
+          <strong id="stage">1</strong>
+        </div>
+        <div>
+          <span class="hud-label">Score</span>
+          <strong id="score">0</strong>
+        </div>
+        <div>
+          <span class="hud-label">Speed</span>
+          <strong id="level">1x</strong>
+        </div>
+      </section>
+
+      <section id="gameArea" class="game-area" aria-label="Tap balloons to pop them">
+        <div class="cloud cloud-one"></div>
+        <div class="cloud cloud-two"></div>
+        <div class="cloud cloud-three"></div>
+        <div id="startPanel" class="panel">
+          <h1>Balloon Pop</h1>
+          <p>Tap or click colorful balloons before they float away.</p>
+          <button id="startButton" type="button">Start popping</button>
+        </div>
+      </section>
+
+      <p class="hint">Touch-friendly: tap anywhere on a balloon. Desktop: click to pop.</p>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
