@@ -11,21 +11,13 @@ let audioCtx = null;
 // BGM: ステージごとに異なる進行（各音は約0.5秒ずつ）
 let bgmIntervalId = null;
 
-// ポップごとに進むメロディノート
-let melodyNoteIndex = 0;
-
-// スケール定義（各ステージで異なるキー）
-const STAGE_SCALES = {
-  1: [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25], // C major
-  2: [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33, 659.25, 739.99], // D major
-  3: [329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99], // E major
-  4: [196.00, 220.00, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25], // F major (lower)
-  5: [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77], // G major
-};
-
-function getStageScale(stageNum) {
-  return STAGE_SCALES[stageNum] || STAGE_SCALES[1];
-}
+// ポップごとに進む「カエルの歌」メロディ
+const KAERU_NO_UTA = [
+  261.63, 293.66, 329.63, 349.23, 329.63, 293.66, 261.63,
+  329.63, 349.23, 392.00, 440.00, 392.00, 349.23, 329.63,
+  261.63, 261.63, 261.63, 329.63, 329.63, 329.63,
+  392.00, 349.23, 329.63, 293.66, 261.63
+];
 
 function initAudio() {
   if (!audioCtx) {
@@ -36,35 +28,41 @@ function initAudio() {
   }
 }
 
-// === ポップ効果音（シンプルな破裂音） ===
+// === ポップ効果音（カエルの歌のメロディ） ===
+let kaeruIndex = 0;
+
 function playPopSound() {
   initAudio();
 
-  // 短いノイズバースト＋ピッチ下降
-  const bufSize = audioCtx.sampleRate * 0.1;
-  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < bufSize; i++) {
-    const t = i / audioCtx.sampleRate;
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 55) * (1 - t * 8);
-  }
-  const src = audioCtx.createBufferSource();
-  src.buffer = buf;
+  // カエルの歌の次の音
+  const freq = KAERU_NO_UTA[kaeruIndex];
+  kaeruIndex = (kaeruIndex + 1) % KAERU_NO_UTA.length;
 
+  const now = audioCtx.currentTime;
+
+  // 主音（ポップ感を出すため短いアタック）
+  const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.setValueAtTime(2200, audioCtx.currentTime);
-  filter.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.07);
-
-  src.connect(filter);
-  filter.connect(gain);
+  osc.type = "triangle";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.35, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  osc.connect(gain);
   gain.connect(audioCtx.destination);
-  src.start();
-  src.stop(audioCtx.currentTime + 0.1);
+  osc.start(now);
+  osc.stop(now + 0.35);
+
+  // 倍音で音を豊かに
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.type = "sine";
+  osc2.frequency.value = freq * 2;
+  gain2.gain.setValueAtTime(0.08, now);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  osc2.connect(gain2);
+  gain2.connect(audioCtx.destination);
+  osc2.start(now);
+  osc2.stop(now + 0.25);
 }
 
 // === BGM: 一般的なメロディBGM ===
@@ -187,38 +185,7 @@ function stopBGM() {
   }
 }
 
-// === 風船を潰すたびに進むメロディ ===
-function playMelodyNote() {
-  initAudio();
 
-  const scale = getStageScale(stage);
-  melodyNoteIndex = (melodyNoteIndex + 1) % scale.length;
-  const freq = scale[melodyNoteIndex];
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = "sine";
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
-
-  // 倍音で音を豊かに
-  const osc2 = audioCtx.createOscillator();
-  const gain2 = audioCtx.createGain();
-  osc2.type = "triangle";
-  osc2.frequency.value = freq * 2;
-  gain2.gain.setValueAtTime(0.05, audioCtx.currentTime);
-  gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-
-  osc.connect(gain);
-  osc2.connect(gain2);
-  gain.connect(audioCtx.destination);
-  gain2.connect(audioCtx.destination);
-  osc.start();
-  osc2.start();
-  osc.stop(audioCtx.currentTime + 0.8);
-  osc2.stop(audioCtx.currentTime + 0.6);
-}
 
 // === ステージクリア音 ===
 function playClearSound() {
@@ -279,7 +246,7 @@ function startStage(stageNum) {
   stage = stageNum;
   popsInStage = 0;
   spawnDelay = Math.max(380, 900 - (stageNum - 1) * 100);
-  melodyNoteIndex = 0;
+  kaeruIndex = 0;
 
   // ステージに応じて背景色を変更
   const stageHues = [190, 140, 280, 350, 30];
@@ -378,9 +345,8 @@ function popBalloon(event) {
   scheduleNextSpawn();
   showPopScore(event.clientX, event.clientY);
 
-  // 効果音＋メロディ進行
+  // カエルの歌メロディ効果音
   playPopSound();
-  playMelodyNote();
 
   balloon.classList.add("popped");
   setTimeout(() => balloon.remove(), 220);
@@ -417,7 +383,7 @@ function startGame() {
   stage = 1;
   popsInStage = 0;
   spawnDelay = 900;
-  melodyNoteIndex = 0;
+  kaeruIndex = 0;
 
   // 背景リセット
   document.body.style.setProperty("--sky-top", "#86e0ff");
