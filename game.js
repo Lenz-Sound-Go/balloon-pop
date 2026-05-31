@@ -245,7 +245,7 @@ function transitionToNextStage() {
 function startStage(stageNum) {
   stage = stageNum;
   popsInStage = 0;
-  spawnDelay = Math.max(380, 900 - (stageNum - 1) * 100);
+  spawnDelay = Math.max(450, 1000 - (stageNum - 1) * 70);
   kaeruIndex = 0;
 
   // ステージに応じて背景色を変更
@@ -271,7 +271,13 @@ function startStage(stageNum) {
 // === ゲームロジック ===
 let score = 0;
 let spawnDelay = 900;
-let minSpawnDelay = 310;
+let minSpawnDelay = 400;
+
+// 顔タイプごとのスコアと速度
+const FACE_CONFIG = {
+  takeshi: { score: 2, label: "兄", speedBonus: 0.75 },  // 兄: 速い・高得点
+  kenji:    { score: 1, label: "弟", speedBonus: 1.25 },  // 弟: 遅い・低得点
+};
 let gameRunning = false;
 let lastSpawnAt = 0;
 let animationFrame = 0;
@@ -292,22 +298,27 @@ function getDifficulty() {
 
 function scheduleNextSpawn() {
   const difficulty = getDifficulty();
-  spawnDelay = Math.max(minSpawnDelay, 900 - difficulty * 560 - score * 2.2);
+  spawnDelay = Math.max(minSpawnDelay, 950 - difficulty * 400 - score * 1.5);
 }
 
 function createBalloon() {
   const balloon = document.createElement("button");
-  const size = randomBetween(52, 90); // 少し大きく（顔が見えるように）
-  const duration = Math.max(2500, randomBetween(6200, 7600) - score * 55);
+  
+  // Randomly pick one of two faces (50/50)
+  const faceType = Math.random() < 0.5 ? "takeshi" : "kenji";
+  const config = FACE_CONFIG[faceType];
+  
+  const size = randomBetween(52, 90);
+  const baseDuration = faceType === "takeshi" ? randomBetween(3500, 5000) : randomBetween(5500, 7500);
+  const duration = Math.max(2000, baseDuration - score * 30);
   const left = randomBetween(10, 90);
   const drift = randomBetween(-90, 90);
   const tilt = randomBetween(-9, 9);
 
   balloon.type = "button";
-  // Randomly pick one of two faces
-  const faceType = Math.random() < 0.5 ? "takeshi" : "kenji";
   balloon.className = `face-balloon face-${faceType}`;
-  balloon.setAttribute("aria-label", "Pop balloon");
+  balloon.setAttribute("data-face", faceType);
+  balloon.setAttribute("aria-label", `${config.label}の風船`);
   balloon.style.setProperty("--face-size", `${size}px`);
   balloon.style.setProperty("--face-left", `${left}%`);
   balloon.style.setProperty("--drift", `${drift}px`);
@@ -320,17 +331,31 @@ function createBalloon() {
   gameArea.append(balloon);
 }
 
-function showPopScore(x, y) {
+function showPopScore(x, y, faceType) {
   const popScore = document.createElement("div");
   const bounds = gameArea.getBoundingClientRect();
+  const config = FACE_CONFIG[faceType] || FACE_CONFIG.kenji;
 
   popScore.className = "pop-score";
-  popScore.textContent = "+1";
+  popScore.textContent = `+${config.score}`;
   popScore.style.left = `${x - bounds.left}px`;
   popScore.style.top = `${y - bounds.top}px`;
+  if (faceType === "takeshi") {
+    popScore.style.color = "#FFD700";  // 兄は金色
+  }
   popScore.addEventListener("animationend", () => popScore.remove());
 
+  // ラベルも表示
+  const label = document.createElement("div");
+  label.className = "pop-label";
+  label.textContent = config.label;
+  label.style.left = `${x - bounds.left}px`;
+  label.style.top = `${y - bounds.top - 18}px`;
+  label.style.color = faceType === "takeshi" ? "#FFD700" : "#90EE90";
+  label.addEventListener("animationend", () => label.remove());
+
   gameArea.append(popScore);
+  gameArea.append(label);
 }
 
 function popBalloon(event) {
@@ -341,11 +366,13 @@ function popBalloon(event) {
   }
 
   event.preventDefault();
-  score += 1;
+  const faceType = balloon.getAttribute("data-face") || "kenji";
+  const config = FACE_CONFIG[faceType];
+  score += config.score;
   popsInStage += 1;
   updateHud();
   scheduleNextSpawn();
-  showPopScore(event.clientX, event.clientY);
+  showPopScore(event.clientX, event.clientY, faceType);
 
   // カエルの歌メロディ効果音
   playPopSound();
