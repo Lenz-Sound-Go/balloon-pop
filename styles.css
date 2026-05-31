@@ -166,7 +166,6 @@ button {
 .face-balloon {
   --face-size: 4rem;
   animation: floatUp linear forwards;
-  background: url("face_small.png") no-repeat center / cover;
   border-radius: 50%;
   box-shadow:
     0 4px 12px rgba(33, 98, 153, 0.25),
@@ -214,6 +213,14 @@ button {
   position: absolute;
   transform: translateX(-50%);
   width: 2px;
+}
+
+.face-takeshi {
+  background: url("face_takeshi.png") no-repeat center / cover;
+}
+
+.face-kenji {
+  background: url("face_kenji.png") no-repeat center / cover;
 }
 
 .face-balloon.popped {

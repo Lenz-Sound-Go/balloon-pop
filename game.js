@@ -304,7 +304,9 @@ function createBalloon() {
   const tilt = randomBetween(-9, 9);
 
   balloon.type = "button";
-  balloon.className = "face-balloon";
+  // Randomly pick one of two faces
+  const faceType = Math.random() < 0.5 ? "takeshi" : "kenji";
+  balloon.className = `face-balloon face-${faceType}`;
   balloon.setAttribute("aria-label", "Pop balloon");
   balloon.style.setProperty("--face-size", `${size}px`);
   balloon.style.setProperty("--face-left", `${left}%`);
